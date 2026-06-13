@@ -9,6 +9,16 @@ const RECALL_TOP_K = 30;
 const RERANK_TOP_N = 10;
 const BATCH_SIZE = 96;
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+interface PrecomputedEmbeddings {
+  version: number;
+  model: string;
+  dimension: number;
+  count: number;
+  embeddings: Record<string, number[]>;
+}
+
 function getApiKey(): string {
   const key = process.env.NEXT_PUBLIC_COHERE_API_KEY;
   if (!key) throw new Error("NEXT_PUBLIC_COHERE_API_KEY is not set");
@@ -27,13 +37,17 @@ async function coherePost(endpoint: string, body: Record<string, unknown>) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message ?? `Cohere ${endpoint} failed: ${res.status}`);
+    throw new Error(
+      (err as { message?: string }).message ?? `Cohere ${endpoint} failed: ${res.status}`
+    );
   }
   return res.json();
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0, normA = 0, normB = 0;
+  let dot = 0,
+    normA = 0,
+    normB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
@@ -46,37 +60,69 @@ function cosineSimilarity(a: number[], b: number[]): number {
 let embeddedCorpus: EmbeddedPiece[] | null = null;
 let embeddingPromise: Promise<EmbeddedPiece[]> | null = null;
 
+async function loadPrecomputedEmbeddings(): Promise<EmbeddedPiece[]> {
+  const res = await fetch(`${basePath}/corpus-embeddings.json`);
+  if (!res.ok) {
+    throw new Error(`Could not load corpus embeddings (${res.status})`);
+  }
+
+  const data = (await res.json()) as PrecomputedEmbeddings;
+  const pieces: EmbeddedPiece[] = [];
+
+  for (const piece of corpus) {
+    const embedding = data.embeddings[piece.id];
+    if (!embedding) {
+      throw new Error(`Missing embedding for ${piece.id}`);
+    }
+    pieces.push({
+      ...piece,
+      embedding,
+      embedText: buildEmbedText(piece),
+    });
+  }
+
+  return pieces;
+}
+
+async function embedCorpusLive(): Promise<EmbeddedPiece[]> {
+  const pieces: EmbeddedPiece[] = [];
+
+  for (let i = 0; i < corpus.length; i += BATCH_SIZE) {
+    const batch = corpus.slice(i, i + BATCH_SIZE);
+    const texts = batch.map(buildEmbedText);
+
+    const data = await coherePost("embed", {
+      model: EMBED_MODEL,
+      texts,
+      input_type: "search_document",
+      embedding_types: ["float"],
+      output_dimension: EMBED_DIMENSION,
+    });
+
+    const embeddings: number[][] = data.embeddings?.float ?? [];
+    for (let j = 0; j < batch.length; j++) {
+      pieces.push({
+        ...batch[j],
+        embedding: embeddings[j],
+        embedText: texts[j],
+      });
+    }
+  }
+
+  return pieces;
+}
+
 export async function getEmbeddedCorpus(): Promise<EmbeddedPiece[]> {
   if (embeddedCorpus) return embeddedCorpus;
   if (embeddingPromise) return embeddingPromise;
 
   embeddingPromise = (async () => {
-    const pieces: EmbeddedPiece[] = [];
-
-    for (let i = 0; i < corpus.length; i += BATCH_SIZE) {
-      const batch = corpus.slice(i, i + BATCH_SIZE);
-      const texts = batch.map(buildEmbedText);
-
-      const data = await coherePost("embed", {
-        model: EMBED_MODEL,
-        texts,
-        input_type: "search_document",
-        embedding_types: ["float"],
-        output_dimension: EMBED_DIMENSION,
-      });
-
-      const embeddings: number[][] = data.embeddings?.float ?? [];
-      for (let j = 0; j < batch.length; j++) {
-        pieces.push({
-          ...batch[j],
-          embedding: embeddings[j],
-          embedText: texts[j],
-        });
-      }
+    try {
+      embeddedCorpus = await loadPrecomputedEmbeddings();
+    } catch {
+      embeddedCorpus = await embedCorpusLive();
     }
-
-    embeddedCorpus = pieces;
-    return pieces;
+    return embeddedCorpus;
   })();
 
   return embeddingPromise;

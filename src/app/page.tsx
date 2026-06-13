@@ -54,12 +54,14 @@ export default function HomePage() {
         setCorpusLoading(true);
         await getEmbeddedCorpus();
         setCorpusReady(true);
-      } catch {
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Could not index the corpus";
         setMessages([
           {
             id: createId(),
             role: "assistant",
-            error: "Could not index the corpus. Check your Cohere API key.",
+            error: `Could not index the corpus. ${message}`,
           },
         ]);
       } finally {

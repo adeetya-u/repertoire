@@ -13,6 +13,7 @@
 
 # production
 /build
+/public/corpus-embeddings.json
 
 # misc
 .DS_Store
