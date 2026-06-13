@@ -1,7 +1,8 @@
 import type { PianoPiece } from "../types";
 import { definePiece } from "./helpers";
+import { IMSLP_COLLECTIONS } from "./imslp-urls";
 
-type RawPiece = Omit<PianoPiece, "id" | "imslpUrl">;
+type RawPiece = Omit<PianoPiece, "id" | "imslpUrl"> & { imslpUrl?: string };
 
 function p(piece: RawPiece): PianoPiece {
   return definePiece(piece);
@@ -21,7 +22,8 @@ function numberedWorks(
     description: string;
     tags: string[];
     gradeOffset?: number;
-  }>
+  }>,
+  imslpUrl?: string
 ): PianoPiece[] {
   return Array.from({ length: count }, (_, i) => {
     const profile = profiles[i % profiles.length];
@@ -38,6 +40,7 @@ function numberedWorks(
       texture: profile.texture,
       description: profile.description.replace("{n}", String(i + 1)),
       tags: profile.tags,
+      ...(imslpUrl ? { imslpUrl } : {}),
     });
   });
 }
@@ -743,6 +746,53 @@ const handcrafted: RawPiece[] = [
       "The most accessible gnossienne. Slow and meditative with Satie's characteristic harmonic ambiguity. Good for exploring tone and atmosphere at an early intermediate level.",
     tags: ["satie", "gnossienne", "slow", "atmospheric"],
   },
+  {
+    title: "Mikrokosmos Vol. 4 No. 97 – Chromatic Invention",
+    composer: "Béla Bartók",
+    era: "20th Century",
+    year: 1939,
+    difficulty: "Grade 6",
+    grade: 6,
+    tempo: "Moderato",
+    mood: ["intellectual", "contrapuntal", "modern", "dry"],
+    texture: "Two-part invention with chromatic lines",
+    description:
+      "Bartók's answer to Bach inventions. Two-voice counterpoint with 20th-century harmonic language — angular, intellectual, and unsentimental. Perfect for players who love Bach's logic but want modern color.",
+    tags: ["bartok", "invention", "counterpoint", "20th century", "mikrokosmos"],
+    imslpUrl: IMSLP_COLLECTIONS.bartokMicrocosmos,
+  },
+  {
+    title: "Prelude and Fugue in C major, Op. 87 No. 1",
+    composer: "Dmitri Shostakovich",
+    era: "20th Century",
+    year: 1950,
+    difficulty: "Grade 7",
+    grade: 7,
+    tempo: "Moderato",
+    mood: ["intellectual", "contrapuntal", "austere", "modern"],
+    texture: "Baroque prelude and fugue form with Soviet harmonic bite",
+    description:
+      "Shostakovich explicitly modeled his Op. 87 on Bach's Well-Tempered Clavier. Rigorous fugue subject and clear voice leading, but with unmistakably 20th-century harmonic tension. The definitive 'Bach from the 20th century' piece.",
+    tags: ["shostakovich", "prelude", "fugue", "counterpoint", "bach-like"],
+    imslpUrl:
+      "https://imslp.org/wiki/24_Preludes_and_Fugues,_Op.87_(Shostakovich,_Dmitry)",
+  },
+  {
+    title: "Fugue in G-sharp minor, from The Art of Fugue, BWV 1080",
+    composer: "Johann Sebastian Bach",
+    era: "Baroque",
+    year: 1750,
+    difficulty: "Grade 8",
+    grade: 8,
+    tempo: "Moderato",
+    mood: ["intellectual", "abstract", "contrapuntal", "profound"],
+    texture: "Pure four-voice fugue",
+    description:
+      "From Bach's final monumental contrapuntal work. Abstract and deeply intellectual — music as pure logic. For advanced players who find spiritual satisfaction in voice leading rather than emotion.",
+    tags: ["bach", "art of fugue", "contrapuntal", "advanced"],
+    imslpUrl:
+      "https://imslp.org/wiki/Die_Kunst_der_Fuge,_BWV_1080_(Bach,_Johann_Sebastian)",
+  },
 ];
 
 const chopinPreludes = numberedWorks(
@@ -809,7 +859,8 @@ const bachInventions = numberedWorks(
         "Invention {n} with lively rhythmic character. Trains independence and clarity at the keyboard. Part of Bach's pedagogical masterworks.",
       tags: ["bach", "invention", "fast", "pedagogical"],
     },
-  ]
+  ],
+  IMSLP_COLLECTIONS.bachInventions
 );
 
 const bachSinfonias = numberedWorks(
@@ -828,7 +879,8 @@ const bachSinfonias = numberedWorks(
         "Three-part sinfonia {n}. More complex voice leading than two-part inventions. Demands voicing awareness and contrapuntal listening.",
       tags: ["bach", "sinfonia", "three-part", "counterpoint"],
     },
-  ]
+  ],
+  IMSLP_COLLECTIONS.bachInventions
 );
 
 const wtcBook1Preludes = Array.from({ length: 24 }, (_, i) => {
@@ -856,6 +908,7 @@ const wtcBook1Preludes = Array.from({ length: 24 }, (_, i) => {
       ? `Prelude in ${keys[i]} from Bach's WTC Book I. Minor-key prelude with richer harmonic language and emotional weight. Pairs with its fugue companion.`
       : `Prelude in ${keys[i]} from Bach's WTC Book I. Part of the foundational keyboard cycle. Explores key character through prelude texture before the paired fugue.`,
     tags: ["bach", "wtc", "prelude", isMinor ? "minor" : "major"],
+    imslpUrl: IMSLP_COLLECTIONS.bachWtc1,
   });
 });
 
@@ -879,6 +932,7 @@ const wtcBook1Fugues = Array.from({ length: 24 }, (_, i) => {
     texture: "Fugal entries with subject and countersubject",
     description: `Fugue in ${keys[i]} from WTC Book I. Pure contrapuntal architecture with subject entries and stretto. For pianists who love Bach's intellectual depth.`,
     tags: ["bach", "wtc", "fugue", "contrapuntal"],
+    imslpUrl: IMSLP_COLLECTIONS.bachWtc1,
   });
 });
 
@@ -1187,6 +1241,7 @@ const schubertImpromptus = [
     texture: "Schubertian lyricism with extended forms",
     description: `Schubert impromptu Op. 90 No. ${n} in ${key}. Extended Romantic form with singing melody and rich harmony. ${n === 3 ? "Especially beloved for gentle melancholy." : "Substantial musical argument in a standalone piece."}`,
     tags: ["schubert", "impromptu", "romantic", key.includes("minor") ? "minor" : "major"],
+    imslpUrl: IMSLP_COLLECTIONS.schubertImpromptusOp90,
   })
 );
 

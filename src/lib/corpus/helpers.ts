@@ -1,4 +1,5 @@
 import type { PianoPiece } from "../types";
+import { resolveImslpUrl } from "./imslp-urls";
 
 export function slugify(text: string): string {
   return text
@@ -6,12 +7,6 @@ export function slugify(text: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "_")
     .replace(/^_|_$/g, "");
-}
-
-export function buildImslpUrl(title: string, composer: string): string {
-  const composerSlug = slugify(composer.split(" ").pop() ?? composer);
-  const titleSlug = slugify(title);
-  return `https://imslp.org/wiki/${titleSlug}_(${composerSlug})`;
 }
 
 export function buildEmbedText(piece: PianoPiece): string {
@@ -33,6 +28,8 @@ export function definePiece(
   return {
     ...partial,
     id,
-    imslpUrl: partial.imslpUrl ?? buildImslpUrl(partial.title, partial.composer),
+    imslpUrl:
+      partial.imslpUrl ??
+      resolveImslpUrl(partial.title, partial.composer),
   };
 }

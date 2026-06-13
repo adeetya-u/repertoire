@@ -1,31 +1,66 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Music2 } from "lucide-react";
-import { PipelineComparison } from "@/components/pipeline-comparison";
-import { ResultsList } from "@/components/results-list";
-import { SearchInput } from "@/components/search-input";
-import { Toggle } from "@/components/ui/toggle";
-import type { SearchResult } from "@/lib/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChatAssistantMessage } from "@/components/chat-assistant-message";
+import { ChatInput, EXAMPLE_QUERIES } from "@/components/chat-input";
+import { search, getEmbeddedCorpus, type ClientSearchResult } from "@/lib/client-search";
+import type { ScoredPiece, SearchResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content?: string;
+  result?: SearchResult;
+  error?: string;
+  loading?: boolean;
+}
+
+function createId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function toSearchResult(r: ClientSearchResult): SearchResult {
+  return {
+    query: r.query,
+    embedResults: r.embedResults.map((e, i) => ({
+      ...e.piece,
+      score: e.score,
+      rank: i + 1,
+    })) as ScoredPiece[],
+    rerankResults: r.rerankResults.map((e, i) => ({
+      ...e.piece,
+      score: e.score,
+      rank: i + 1,
+    })) as ScoredPiece[],
+    timings: r.timings,
+    corpusSize: r.corpusSize,
+  };
+}
+
 export default function HomePage() {
-  const [query, setQuery] = useState("");
-  const [result, setResult] = useState<SearchResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [compareMode, setCompareMode] = useState(true);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [compareMode, setCompareMode] = useState(false);
   const [corpusReady, setCorpusReady] = useState(false);
   const [corpusLoading, setCorpusLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function warmCorpus() {
       try {
         setCorpusLoading(true);
-        await fetch("/api/embed-corpus", { method: "POST" });
+        await getEmbeddedCorpus();
         setCorpusReady(true);
       } catch {
-        setError("Failed to index the piano corpus. Check your API key.");
+        setMessages([
+          {
+            id: createId(),
+            role: "assistant",
+            error: "Could not index the corpus. Check your Cohere API key.",
+          },
+        ]);
       } finally {
         setCorpusLoading(false);
       }
@@ -34,136 +69,145 @@ export default function HomePage() {
     warmCorpus();
   }, []);
 
-  const handleSearch = useCallback(async (searchQuery: string) => {
-    setQuery(searchQuery);
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = useCallback(async (query: string) => {
+    const userId = createId();
+    const assistantId = createId();
+
+    setMessages((prev) => [
+      ...prev,
+      { id: userId, role: "user", content: query },
+      { id: assistantId, role: "assistant", loading: true },
+    ]);
+    setBusy(true);
 
     try {
-      const response = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: searchQuery, mode: "both" }),
-      });
+      const data = await search(query);
+      const result = toSearchResult(data);
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "Search failed");
-      }
-
-      setResult(data as SearchResult);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId ? { ...msg, loading: false, result } : msg
+        )
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Search failed");
-      setResult(null);
+      const message = err instanceof Error ? err.message : "Search failed";
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId ? { ...msg, loading: false, error: message } : msg
+        )
+      );
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }, []);
 
+  const isEmpty = messages.length === 0;
+  const inputDisabled = busy || corpusLoading;
+
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-950/30 via-zinc-950 to-zinc-950" />
-
-      <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <header className="mb-10 space-y-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-400">
-            <Music2 className="h-3.5 w-3.5 text-violet-400" />
-            Powered by Cohere Embed + Rerank
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            Repertoire
-          </h1>
-          <p className="mx-auto max-w-2xl text-base leading-relaxed text-zinc-400">
-            Describe the piano piece you want to play — mood, difficulty, era,
-            texture — and find it in a curated IMSLP corpus. Keyword search
-            can&apos;t do this. Semantic search can.
-          </p>
-          {corpusLoading && (
-            <p className="text-sm text-violet-400/80 animate-pulse">
-              Indexing {corpusReady ? "" : "440+"} piano pieces with Cohere Embed…
-            </p>
+    <div className="flex h-[100dvh] flex-col bg-[hsl(var(--chat-bg))]">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-4">
+        <span className="text-[15px] font-medium text-foreground">Repertoire</span>
+        <button
+          type="button"
+          onClick={() => setCompareMode((v) => !v)}
+          className={cn(
+            "text-[12px] text-muted-foreground transition-colors hover:text-foreground",
+            compareMode && "text-foreground"
           )}
-        </header>
+        >
+          {compareMode ? "Compare on" : "Compare"}
+        </button>
+      </header>
 
-        <SearchInput onSearch={handleSearch} loading={loading || corpusLoading} />
-
-        <div className="mt-6 flex items-center justify-between gap-4">
-          <label className="flex items-center gap-3 text-sm text-zinc-400">
-            <Toggle
-              pressed={compareMode}
-              onPressedChange={setCompareMode}
-              className="data-[state=on]:bg-violet-600 data-[state=on]:text-white"
-              aria-label="Toggle comparison mode"
-            />
-            Compare Embed recall vs Embed + Rerank
-          </label>
-          {query && !loading && (
-            <p className="truncate text-xs text-zinc-600">
-              Query: &ldquo;{query}&rdquo;
-            </p>
+      <div
+        ref={scrollRef}
+        className="chat-scrollbar min-h-0 flex-1 overflow-y-auto pb-36"
+      >
+        <div
+          className={cn(
+            "mx-auto w-full px-4",
+            compareMode ? "max-w-5xl" : "max-w-3xl"
           )}
+        >
+          {isEmpty && !corpusLoading && (
+            <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center pb-32 pt-16 text-center">
+              <h1 className="text-2xl font-normal tracking-tight text-foreground">
+                What do you want to play?
+              </h1>
+              <p className="mt-2 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+                Describe mood, difficulty, era, or a composer — not titles or keywords.
+              </p>
+              <div className="mt-8 flex max-w-lg flex-col items-stretch gap-2 sm:max-w-none sm:flex-row sm:flex-wrap sm:justify-center">
+                {EXAMPLE_QUERIES.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => handleSend(example)}
+                    disabled={inputDisabled || !corpusReady}
+                    className="rounded-full border border-border/80 px-4 py-2 text-left text-[13px] text-muted-foreground transition-colors hover:border-border hover:bg-[hsl(var(--chat-surface))] hover:text-foreground disabled:opacity-40 sm:text-center"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {corpusLoading && isEmpty && (
+            <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center pb-32">
+              <p className="text-[14px] text-muted-foreground">Indexing pieces…</p>
+            </div>
+          )}
+
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "py-6",
+                message.role === "user" ? "flex justify-end" : ""
+              )}
+            >
+              {message.role === "user" ? (
+                <div className="max-w-[85%] rounded-3xl bg-[hsl(var(--chat-user))] px-4 py-2.5">
+                  <p className="text-[15px] leading-relaxed text-foreground">
+                    {message.content}
+                  </p>
+                </div>
+              ) : (
+                <ChatAssistantMessage
+                  result={message.result}
+                  loading={message.loading}
+                  error={message.error}
+                  compareMode={compareMode}
+                />
+              )}
+            </div>
+          ))}
+          <div ref={bottomRef} className="h-4" />
         </div>
-
-        {error && (
-          <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
-
-        {result && (
-          <div className="mt-6">
-            <PipelineComparison result={result} compareMode={compareMode} />
-          </div>
-        )}
-
-        {(loading || result) && (
-          <div
-            className={cn(
-              "mt-8 grid gap-8",
-              compareMode ? "lg:grid-cols-2" : "mx-auto max-w-2xl"
-            )}
-          >
-            {compareMode ? (
-              <>
-                <ResultsList
-                  title="Embed recall"
-                  subtitle="Top matches by semantic similarity (cosine)"
-                  results={result?.embedResults ?? []}
-                  scoreLabel="Similarity"
-                  loading={loading}
-                  emptyMessage="Run a search to see embed recall results."
-                />
-                <ResultsList
-                  title="Embed + Rerank"
-                  subtitle="Top 10 after Cohere Rerank precision scoring"
-                  results={result?.rerankResults ?? []}
-                  scoreLabel="Relevance"
-                  loading={loading}
-                  emptyMessage="Run a search to see reranked results."
-                />
-              </>
-            ) : (
-              <ResultsList
-                title="Best matches"
-                subtitle="Precision-ranked by Cohere Rerank"
-                results={result?.rerankResults ?? []}
-                scoreLabel="Relevance"
-                loading={loading}
-                emptyMessage="Run a search to see results."
-              />
-            )}
-          </div>
-        )}
-
-        {!loading && !result && !error && corpusReady && (
-          <div className="mt-16 text-center">
-            <p className="text-sm text-zinc-600">
-              Try: &ldquo;melancholic, slow, like late Schubert but under grade
-              6&rdquo;
-            </p>
-          </div>
-        )}
       </div>
-    </main>
+
+      <div
+        className={cn(
+          "shrink-0 border-t border-border/40 bg-[hsl(var(--chat-bg))]",
+          compareMode && "mx-auto w-full max-w-5xl"
+        )}
+      >
+        <ChatInput
+          onSend={handleSend}
+          disabled={inputDisabled || !corpusReady}
+          placeholder={
+            corpusLoading
+              ? "Indexing corpus…"
+              : "Describe what you want to play…"
+          }
+        />
+      </div>
+    </div>
   );
 }

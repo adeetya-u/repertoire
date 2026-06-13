@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-geist-sans",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
-  title: "Repertoire — Semantic Piano Score Discovery",
+  title: "Repertoire",
   description:
-    "Find piano scores by mood, difficulty, and style using Cohere Embed and Rerank. Search IMSLP's repertoire semantically.",
+    "Find piano scores by mood, difficulty, and style using semantic search.",
 };
 
 export default function RootLayout({
@@ -25,12 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("dark font-sans", inter.variable)}>
-      <body
-        className={`${inter.variable} ${jetbrainsMono.variable} min-h-screen antialiased`}
-      >
-        {children}
-      </body>
+    <html lang="en" className={cn("dark h-full font-sans", inter.variable)}>
+      <body className={`${inter.variable} h-full antialiased`}>{children}</body>
     </html>
   );
 }
