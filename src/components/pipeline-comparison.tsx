@@ -44,7 +44,7 @@ export function PipelineComparison({
       {compareMode && (
         <p className="mt-3 text-xs leading-relaxed text-zinc-500">
           Embed recalls semantically similar pieces from the full corpus. Rerank
-          re-scores the top 30 candidates against your exact query — catching
+          re-scores the top 30 candidates against your exact query, catching
           nuance like &quot;slow <em>and</em> melancholic&quot; vs &quot;slow but
           triumphant.&quot;
         </p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Columns2 } from "lucide-react";
 import { ChatAssistantMessage } from "@/components/chat-assistant-message";
 import { ChatInput, EXAMPLE_QUERIES } from "@/components/chat-input";
 import { search, getEmbeddedCorpus, type ClientSearchResult } from "@/lib/client-search";
@@ -124,15 +124,38 @@ export default function HomePage() {
         </div>
         <button
           type="button"
+          role="switch"
+          aria-checked={compareMode}
+          aria-label={compareMode ? "Turn off compare mode" : "Turn on compare mode"}
           onClick={() => setCompareMode((v) => !v)}
           className={cn(
-            "text-[12px] text-muted-foreground transition-colors hover:text-foreground",
-            compareMode && "text-foreground"
+            "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors",
+            compareMode
+              ? "border-foreground/30 bg-[hsl(var(--chat-surface))] text-foreground shadow-sm"
+              : "border-border/80 text-muted-foreground hover:border-border hover:text-foreground"
           )}
         >
-          {compareMode ? "Compare on" : "Compare"}
+          <Columns2 className="h-3.5 w-3.5" strokeWidth={2} />
+          {compareMode ? "Comparing" : "Compare"}
         </button>
       </header>
+
+      {compareMode && (
+        <div className="shrink-0 border-b border-border/60 bg-[hsl(var(--chat-surface))]/50 px-4 py-2.5">
+          <div
+            className={cn(
+              "mx-auto w-full",
+              compareMode ? "max-w-5xl" : "max-w-3xl"
+            )}
+          >
+            <p className="text-[13px] font-medium text-foreground">Compare mode</p>
+            <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
+              Results appear in two columns: embed recall on the left, reranked
+              matches on the right.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div
         ref={scrollRef}
@@ -165,6 +188,36 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+
+              {compareMode ? (
+                <div className="mt-10 w-full max-w-2xl rounded-xl border border-foreground/20 bg-[hsl(var(--chat-surface))]/60 p-5 text-left">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-0">
+                    <div className="sm:pr-5">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Embed recall
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                        Broad semantic matches from the full library
+                      </p>
+                    </div>
+                    <div className="sm:border-l sm:border-border/60 sm:pl-5">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        After rerank
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                        Tighter fit to your exact wording
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-center text-[12px] text-muted-foreground">
+                    Try a search to see both lists side by side
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-8 text-[12px] text-muted-foreground">
+                  Turn on Compare to see embed recall next to reranked results
+                </p>
+              )}
             </div>
           )}
 

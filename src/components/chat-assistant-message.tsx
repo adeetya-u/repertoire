@@ -72,6 +72,10 @@ export function ChatAssistantMessage({
 
       {compareMode && (
         <div className="min-w-0 space-y-6">
+          <p className="text-[15px] leading-relaxed text-foreground/90">
+            Same search, two stages: semantic recall, then reranked for your
+            query.
+          </p>
           <div className="grid min-w-0 grid-cols-1 gap-8 md:grid-cols-2 md:gap-6">
             <section className="min-w-0 overflow-hidden md:border-r md:border-border/60 md:pr-6">
               <p className="mb-3 text-[12px] font-medium uppercase tracking-wide text-muted-foreground">
