@@ -218,9 +218,14 @@ export default function HomePage() {
                   </p>
                 </div>
               ) : (
-                <p className="mt-8 text-[12px] text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setCompareMode(true)}
+                  className="mt-8 flex items-center gap-1.5 rounded-full border border-border/80 px-4 py-2 text-[13px] text-muted-foreground transition-colors hover:border-border hover:bg-[hsl(var(--chat-surface))] hover:text-foreground"
+                >
+                  <Columns2 className="h-3.5 w-3.5" strokeWidth={2} />
                   Turn on Compare to see embed recall next to reranked results
-                </p>
+                </button>
               )}
             </div>
           )}
