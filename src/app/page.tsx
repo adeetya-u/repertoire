@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronLeft } from "lucide-react";
 import { ChatAssistantMessage } from "@/components/chat-assistant-message";
 import { ChatInput, EXAMPLE_QUERIES } from "@/components/chat-input";
 import { search, getEmbeddedCorpus, type ClientSearchResult } from "@/lib/client-search";
@@ -111,7 +112,16 @@ export default function HomePage() {
   return (
     <div className="flex h-[100dvh] flex-col bg-[hsl(var(--chat-bg))]">
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-4">
-        <span className="text-[15px] font-medium text-foreground">Repertoire</span>
+        <div className="flex items-center gap-3">
+          <a
+            href="https://adeetya.dev"
+            className="flex items-center gap-0.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2} />
+            Portfolio
+          </a>
+          <span className="text-[15px] font-medium text-foreground">Repertoire</span>
+        </div>
         <button
           type="button"
           onClick={() => setCompareMode((v) => !v)}
@@ -140,7 +150,7 @@ export default function HomePage() {
                 What do you want to play?
               </h1>
               <p className="mt-2 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-                Describe mood, difficulty, era, or a composer — not titles or keywords.
+                Find your next piece by how it feels, not what it&apos;s called.
               </p>
               <div className="mt-8 flex max-w-lg flex-col items-stretch gap-2 sm:max-w-none sm:flex-row sm:flex-wrap sm:justify-center">
                 {EXAMPLE_QUERIES.map((example) => (
