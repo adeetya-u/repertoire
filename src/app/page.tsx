@@ -113,8 +113,13 @@ export default function HomePage() {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-[hsl(var(--chat-bg))]">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-border/60 px-4">
-        <div className="flex items-center gap-3">
+      <header
+        className={cn(
+          "flex shrink-0 items-center justify-between gap-3 border-b border-border/60 px-4",
+          compareMode ? "min-h-12 py-2" : "h-12"
+        )}
+      >
+        <div className="flex shrink-0 items-center gap-3">
           <a
             href="https://adeetya.dev"
             className="flex items-center gap-0.5 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
@@ -122,8 +127,17 @@ export default function HomePage() {
             <ChevronLeft className="h-3.5 w-3.5" strokeWidth={2} />
             Portfolio
           </a>
-          <span className="text-[15px] font-medium text-foreground">Repertoire</span>
+          {!compareMode && (
+            <span className="text-[15px] font-medium text-foreground">Repertoire</span>
+          )}
         </div>
+        {compareMode && (
+          <p className="min-w-0 flex-1 truncate text-center text-[12px] text-muted-foreground">
+            <span className="font-medium text-foreground">Compare mode</span>
+            {" · "}
+            Embed left, rerank right
+          </p>
+        )}
         <button
           type="button"
           role="switch"
@@ -131,7 +145,7 @@ export default function HomePage() {
           aria-label={compareMode ? "Turn off compare mode" : "Turn on compare mode"}
           onClick={() => setCompareMode((v) => !v)}
           className={cn(
-            "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors",
+            "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors",
             compareMode
               ? "border-foreground/30 bg-[hsl(var(--chat-surface))] text-foreground shadow-sm"
               : "border-border/80 text-muted-foreground hover:border-border hover:text-foreground"
@@ -141,23 +155,6 @@ export default function HomePage() {
           {compareMode ? "Comparing" : "Compare"}
         </button>
       </header>
-
-      {compareMode && (
-        <div className="shrink-0 border-b border-border/60 bg-[hsl(var(--chat-surface))]/50 px-4 py-2.5">
-          <div
-            className={cn(
-              "mx-auto w-full",
-              compareMode ? "max-w-5xl" : "max-w-3xl"
-            )}
-          >
-            <p className="text-[13px] font-medium text-foreground">Compare mode</p>
-            <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
-              Results appear in two columns: embed recall on the left, reranked
-              matches on the right.
-            </p>
-          </div>
-        </div>
-      )}
 
       <div
         ref={scrollRef}
