@@ -191,8 +191,8 @@ export default function HomePage() {
 
               {compareMode ? (
                 <div className="mt-10 w-full max-w-2xl rounded-xl border border-foreground/20 bg-[hsl(var(--chat-surface))]/60 p-5 text-left">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-0">
-                    <div className="sm:pr-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+                    <div className="flex-1">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                         Embed recall
                       </p>
@@ -200,7 +200,11 @@ export default function HomePage() {
                         Broad semantic matches from the full library
                       </p>
                     </div>
-                    <div className="sm:border-l sm:border-border/60 sm:pl-5">
+                    <div
+                      className="hidden w-px shrink-0 self-stretch bg-border/60 sm:block"
+                      aria-hidden
+                    />
+                    <div className="flex-1 border-t border-border/60 pt-4 sm:border-t-0 sm:pt-0">
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                         After rerank
                       </p>
@@ -209,7 +213,7 @@ export default function HomePage() {
                       </p>
                     </div>
                   </div>
-                  <p className="mt-4 text-center text-[12px] text-muted-foreground">
+                  <p className="mt-4 border-t border-border/60 pt-4 text-center text-[12px] text-muted-foreground">
                     Try a search to see both lists side by side
                   </p>
                 </div>
